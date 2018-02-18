@@ -7,15 +7,13 @@
 //
 
 import UIKit
-import FirebaseDatabase
-import Material
-import CVCalendar
 import JTAppleCalendar
+import Firebase
 
 class CalendarViewController: UIViewController {
 
-    var ref: FIRDatabaseReference!;
-    var records = [String]();
+    var db: Firestore!
+    var records = [String]()
     var currentCalendar: Calendar?
     var dateFormatter = DateFormatter()
     var currentDate = Date()
@@ -29,11 +27,8 @@ class CalendarViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        ref = FIRDatabase.database().reference()
-        
-        // Get records for today.
-        updateRecordsForDate(with: Date())
-        
+        db = Firestore.firestore()
+
         setupCalendar()
     }
     
@@ -91,26 +86,31 @@ class CalendarViewController: UIViewController {
     }
     
     func updateRecordsForDate(with date:Date) {
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let dateString = dateFormatter.string(from: date)
-        ref.child("records").queryOrdered(byChild: "date").queryEqual(toValue: dateString).observe(.value) { (snapshot) in
-            self.records = [String]()
-            
-            for child in snapshot.children {
-                let snap = child as! FIRDataSnapshot
-                let recordDict = snap.value as! [String:Any]
-                let firstName = recordDict["firstName"]
-                let sex = recordDict["sex"]
-                let gear = recordDict["gear"]
-                let chiefComplaint = recordDict["chiefComplaint"]
-                let clothingDescrip = "\(recordDict["topColor"] ?? "unknown")/\(recordDict["bottomColor"] ?? "unknown")"
+        //dateFormatter.dateFormat = "yyyy-MM-dd"
+        //let dateString = dateFormatter.string(from: date)
+        
+        db.collection("records").order(by: "timeReported", descending: true).addSnapshotListener({ (querySnapshot, error) in
+            if let err = error {
+                print("Error getting documents: \(err)")
+            } else {
+                // Empty it out because we will requery all records.
+                self.records = [String]()
                 
-                let str = "\(firstName!), \(sex!), \(gear!), \(chiefComplaint!), \(clothingDescrip)"
-                print(str)
-                self.records.append(str)
+                for document in querySnapshot!.documents {
+                    let recordDict = document.data()
+                    let name = recordDict["name"]
+                    let sex = recordDict["sex"]
+                    let gear = recordDict["gear"]
+                    let chiefComplaint = recordDict["chiefComplaint"]
+                    let clothingDescrip = "\(recordDict["topColor"] ?? "unknown")/\(recordDict["bottomColor"] ?? "unknown")"
+                    
+                    let str = "\(name!), \(sex!), \(gear!), \(chiefComplaint!), \(clothingDescrip)"
+                    print(str)
+                    self.records.append(str)
+                }
+                self.recordsTableView.reloadData()
             }
-            self.recordsTableView.reloadData()
-        }
+        })
     }
 }
 

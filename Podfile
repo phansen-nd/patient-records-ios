@@ -8,8 +8,7 @@ target 'Patient Records' do
 
   # Pods for Patient Records
   pod 'Firebase/Core'
-  pod 'Firebase/Database'
+  pod 'Firebase/Firestore'
   pod 'Material', '~> 2.0'
-  pod 'CVCalendar', '~> 1.6.0'
   pod 'JTAppleCalendar', '~> 7.0'
 end
